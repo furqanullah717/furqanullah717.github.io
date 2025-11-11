@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Code With FK · Learn, Build, Ship</title>
+    <meta
+      name="description"
+      content="Code With FK helps developers level up with hands-on tutorials, live builds, and shipping-ready code."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/assets/css/style.css" />
+  </head>
+  <body>
+    <div class="site-shell">
+      <canvas class="hero-canvas" aria-hidden="true"></canvas>
+      <header class="site-header">
+        <nav class="nav">
+          <a class="brand" href="#hero" aria-label="Code With FK home">
+            <img src="/assets/img/logo.jpg" alt="" class="brand-mark" />
+            <span class="brand-name">Code With FK</span>
+          </a>
+          <button class="nav-toggle" aria-expanded="false" aria-controls="primary-nav">
+            <span class="nav-toggle-bar"></span>
+          </button>
+          <div id="primary-nav" class="nav-links" data-collapsed="true">
+            <a href="#playlists">Playlists</a>
+            <a href="#about">About</a>
+            <a href="#contact">Connect</a>
+            <a class="button button--ghost" href="https://www.youtube.com/@CodeWithFK" target="_blank" rel="noopener">
+              Subscribe
+            </a>
+          </div>
+        </nav>
+      </header>
+
+      <main>
+        <section id="hero" class="hero">
+          <div class="hero-content">
+            <p class="eyebrow">YouTube · Live Builds · Shipping Products</p>
+            <h1>
+              <span class="line">Build beautiful products</span>
+              <span class="line accent">with Code With FK.</span>
+            </h1>
+            <p class="lead">
+              Join 3.88K builders exploring 176 videos of honest, end-to-end app development—design, code, and deployment without skipping the hard parts.
+            </p>
+            <div class="actions">
+              <a class="button button--primary" href="https://www.youtube.com/@CodeWithFK" target="_blank" rel="noopener">
+                Watch on YouTube
+              </a>
+              <a class="button button--outline" href="#playlists">Explore playlists</a>
+            </div>
+            <dl class="hero-stats">
+              <div class="hero-stat">
+                <dt>3.88K</dt>
+                <dd>Subscribers building alongside FK</dd>
+              </div>
+              <div class="hero-stat">
+                <dt>176</dt>
+                <dd>Videos packed with Android &amp; Compose craft</dd>
+              </div>
+              <div class="hero-stat">
+                <dt>14+</dt>
+                <dd>Curated playlists to guide your next build</dd>
+              </div>
+            </dl>
+          </div>
+          <div class="hero-visual">
+            <div class="hero-card">
+              <h2>Build. Ship. Repeat.</h2>
+              <p>
+                FK deconstructs real-world apps live, mixing design, code, and dev tools so you can ship with confidence.
+              </p>
+              <ul class="hero-card-list">
+                <li>Android &amp; Jetpack Compose production workflows</li>
+                <li>UI, state, and architecture decisions explained live</li>
+                <li>Deployments, automation, and launch-ready polish</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section id="playlists" class="section playlists">
+          <div class="section-header">
+            <p class="eyebrow">Featured Playlists</p>
+            <h2>Dive deep with curated learning paths</h2>
+            <p>
+              From rapid prototyping to polished app releases, pick a playlist and start building. Update the data sheet in
+              <code>assets/js/main.js</code> whenever you publish a new series or want to spotlight fresh content.
+            </p>
+          </div>
+          <div class="playlist-grid" data-playlist-grid></div>
+        </section>
+
+        <section id="about" class="section about">
+          <div class="about-content">
+            <div class="about-text">
+              <p class="eyebrow">Why Code With FK?</p>
+              <h2>Real builds, transparent thinking, community-first.</h2>
+              <p>
+                Code With FK is a maker-friendly corner of the internet where engineering meets storytelling. Expect
+                shipping-grade code, straight talk on trade-offs, and design craft that stands out. Every session is built
+                to accelerate how you design, code, and launch products.
+              </p>
+            </div>
+            <ul class="about-points">
+              <li>
+                <h3>Production-focused</h3>
+                <p>Every tutorial targets real deliverables—APIs, UI flows, automation, deployment, and more.</p>
+              </li>
+              <li>
+                <h3>Design-driven engineering</h3>
+                <p>No cookie-cutter clones. Learn how to wireframe, prototype, and implement delightful UX.</p>
+              </li>
+              <li>
+                <h3>Community energy</h3>
+                <p>Weekly livestreams, Discord collaborations, and member challenges keep the momentum high.</p>
+              </li>
+            </ul>
+          </div>
+        </section>
+
+      
+        
+
+        <section id="contact" class="section contact">
+          <div class="contact-content">
+            <div class="contact-text">
+              <p class="eyebrow">Stay in the loop</p>
+              <h2>Collab, sponsor, or just say hi.</h2>
+              <p>
+                Want FK to break down your product live? Looking for a content collaboration? Reach out via your channel of
+                choice. Let’s make something worth shipping.
+              </p>
+            </div>
+            <div class="contact-actions">
+              <a class="contact-card" href="mailto:codewithfkofficial@gmail.com">
+                <span>Email</span>
+                <strong>codewithfkofficial@gmail.com</strong>
+              </a>
+              <a
+                class="contact-card"
+                href="https://discord.com/invite/eZHZVnzXM2"
+                target="_blank"
+                rel="noopener"
+              >
+                <span>Join the community</span>
+                <strong>Discord · CodeWithFK</strong>
+              </a>
+              <a
+                class="contact-card"
+                href="https://www.instagram.com/codewithfkofficial"
+                target="_blank"
+                rel="noopener"
+              >
+                <span>Follow along</span>
+                <strong>@codewithfkofficial</strong>
+              </a>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="site-footer">
+        <div class="footer-content">
+          <div class="footer-brand">
+            <img src="/assets/img/logo.svg" alt="" class="footer-logo" />
+            <p>Build intentional products with FK—learn the craft, ship with confidence, and keep iterating.</p>
+          </div>
+          <div class="footer-links">
+            <a href="#hero">Home</a>
+            <a href="#playlists">Playlists</a>
+            <a href="#about">About</a>
+            <a href="#workflow">Workflow</a>
+            <a href="#contact">Contact</a>
+          </div>
+          <div class="footer-social">
+            <a href="https://www.youtube.com/@CodeWithFK" target="_blank" rel="noopener">YouTube</a>
+            <a href="https://twitter.com/codewithfk" target="_blank" rel="noopener">Twitter/X</a>
+            <a href="https://www.instagram.com/CodeWithFK" target="_blank" rel="noopener">Instagram</a>
+          </div>
+        </div>
+        <p class="footer-note">
+          © <span data-current-year></span> Code With FK. Crafted with love, shipped from the internet.
+        </p>
+      </footer>
+    </div>
+
+    <script src="/assets/js/main.js" type="module"></script>
+  </body>
+</html>
+

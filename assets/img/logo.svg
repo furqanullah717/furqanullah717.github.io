@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Code With FK Logo</title>
+  <desc id="desc">Stylised chevron logo for Code With FK brand</desc>
+  <g fill="#ffffff">
+    <path d="M164 144c-22.1 0-40 17.9-40 40v72c0 22.1 17.9 40 40 40 6.9 0 13.7-1.8 19.7-5.3l102.6-59.3c26-15 26-53.5 0-68.5l-102.6-59.3a39.97 39.97 0 0 0-19.7-5.3z"/>
+    <path d="M348 144c-6.9 0-13.7 1.8-19.7 5.3l-102.6 59.3c-26 15-26 53.5 0 68.5l102.6 59.3a39.97 39.97 0 0 0 19.7 5.3c22.1 0 40-17.9 40-40v-72c0-22.1-17.9-40-40-40z"/>
+  </g>
+</svg>
+
