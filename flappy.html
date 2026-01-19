@@ -172,7 +172,7 @@
             <p class="final-score">Score: <span id="final-score">0</span></p>
             <p class="best-score">Best: <span id="best-score">0</span></p>
             <button class="btn btn-submit" onclick="submitScore()">✓ Submit Score</button>
-            <button class="btn btn-play" onclick="startGame()">Play Again</button>
+            <button class="btn btn-play" onclick="handlePlayAgain()">Play Again</button>
         </div>
     </div>
 
@@ -197,6 +197,19 @@
                     alert('🎮 Score: ' + score + '\n\nIn the Instabridge app, this would submit your score!');
                 }
                 console.log('[StreakBridge] Score submitted:', score);
+            },
+            playAgain: function() {
+                if (this.isInApp()) {
+                    // This will:
+                    // 1. Trigger onPlayAgainClicked callback in the app
+                    // 2. Show an interstitial ad
+                    // 3. Reload the game after ad is dismissed
+                    window.AndroidBridge.playAgain();
+                } else {
+                    // Web fallback - just restart the game
+                    console.log('[StreakBridge] Play Again (web fallback)');
+                    startGame();
+                }
             },
             log: function(msg) {
                 if (this.isInApp()) {
@@ -321,6 +334,15 @@
         
         function submitScore() {
             StreakBridge.complete(score);
+        }
+        
+        /**
+         * Handle Play Again button click.
+         * In the app: Shows interstitial ad, then reloads game.
+         * On web: Just restarts the game.
+         */
+        function handlePlayAgain() {
+            StreakBridge.playAgain();
         }
         
         function jump() {
@@ -616,3 +638,4 @@
     </script>
 </body>
 </html>
+
