@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Instabridge Stack Tower</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --ib-purple-dark: #4c1d95;
+            --ib-purple: #667eea;
+            --ib-purple-light: #a78bfa;
+            --ib-violet: #764ba2;
+            --ib-pink: #ec4899;
+            --ib-gold: #fbbf24;
+            --ib-cyan: #22d3ee;
+            --ib-white: #f8fafc;
+        }
+        
+        body {
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, var(--ib-purple-dark) 0%, #1e1b4b 50%, #0f0f23 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            touch-action: manipulation;
+            position: relative;
+        }
+        
+        /* Animated background grid */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                linear-gradient(rgba(102, 126, 234, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(102, 126, 234, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        /* Floating orbs */
+        .orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(60px);
+            opacity: 0.4;
+            pointer-events: none;
+            z-index: 0;
+            animation: float 8s ease-in-out infinite;
+        }
+        
+        .orb-1 {
+            width: 300px;
+            height: 300px;
+            background: var(--ib-purple);
+            top: -100px;
+            left: -100px;
+            animation-delay: 0s;
+        }
+        
+        .orb-2 {
+            width: 400px;
+            height: 400px;
+            background: var(--ib-violet);
+            bottom: -150px;
+            right: -150px;
+            animation-delay: -4s;
+        }
+        
+        .orb-3 {
+            width: 200px;
+            height: 200px;
+            background: var(--ib-pink);
+            top: 50%;
+            right: 10%;
+            animation-delay: -2s;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(20px, -20px) scale(1.1); }
+        }
+        
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 1;
+        }
+        
+        #score-display {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 72px;
+            font-weight: 900;
+            color: var(--ib-white);
+            text-shadow: 
+                0 0 40px rgba(102, 126, 234, 0.8),
+                0 4px 20px rgba(0, 0, 0, 0.3);
+            z-index: 10;
+            letter-spacing: -2px;
+        }
+        
+        #height-indicator {
+            position: absolute;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--ib-purple-light);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            z-index: 10;
+            opacity: 0.8;
+        }
+        
+        #perfect-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--ib-gold);
+            text-shadow: 0 0 30px rgba(251, 191, 36, 0.8);
+            z-index: 15;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            pointer-events: none;
+        }
+        
+        #perfect-indicator.show {
+            animation: perfectPop 0.6s ease-out;
+        }
+        
+        @keyframes perfectPop {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+            20% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+            100% { opacity: 0; transform: translate(-50%, -60%) scale(1); }
+        }
+        
+        #combo-display {
+            position: absolute;
+            top: 130px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--ib-cyan);
+            text-shadow: 0 0 20px rgba(34, 211, 238, 0.6);
+            z-index: 10;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        #combo-display.show {
+            opacity: 1;
+        }
+        
+        canvas {
+            display: block;
+            background: transparent;
+            border-radius: 20px;
+            box-shadow: 
+                0 25px 80px rgba(0, 0, 0, 0.4),
+                0 0 0 1px rgba(255, 255, 255, 0.05),
+                inset 0 0 100px rgba(102, 126, 234, 0.05);
+        }
+        
+        #start-screen, #game-over-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(15, 15, 35, 0.85);
+            backdrop-filter: blur(20px);
+            z-index: 20;
+            border-radius: 20px;
+        }
+        
+        .brand-logo {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--ib-purple-light);
+            margin-bottom: 8px;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+        }
+        
+        .wifi-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+        
+        #start-screen h1, #game-over-screen h1 {
+            font-size: 42px;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--ib-white) 0%, var(--ib-purple-light) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+            letter-spacing: -1px;
+        }
+        
+        .subtitle {
+            font-size: 16px;
+            color: var(--ib-purple-light);
+            margin-bottom: 32px;
+            font-weight: 400;
+        }
+        
+        #game-over-screen h2 {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--ib-pink);
+            margin-bottom: 24px;
+        }
+        
+        .final-score {
+            font-size: 64px;
+            font-weight: 900;
+            color: var(--ib-white);
+            margin-bottom: 8px;
+            text-shadow: 0 0 40px rgba(102, 126, 234, 0.6);
+        }
+        
+        .score-label {
+            font-size: 14px;
+            color: var(--ib-purple-light);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 16px;
+        }
+        
+        .best-score {
+            font-size: 16px;
+            color: var(--ib-gold);
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        
+        .perfect-count {
+            font-size: 14px;
+            color: var(--ib-cyan);
+            margin-bottom: 32px;
+        }
+        
+        #medal {
+            font-size: 64px;
+            margin-bottom: 16px;
+            animation: bounce 1s ease infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .btn {
+            padding: 16px 48px;
+            font-size: 18px;
+            font-weight: 700;
+            font-family: 'Outfit', sans-serif;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            margin: 8px;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .btn:active {
+            transform: scale(0.95);
+        }
+        
+        .btn-play {
+            background: linear-gradient(135deg, var(--ib-purple) 0%, var(--ib-violet) 100%);
+            color: white;
+            box-shadow: 
+                0 8px 30px rgba(102, 126, 234, 0.4),
+                0 0 0 1px rgba(255, 255, 255, 0.1);
+        }
+        
+        .btn-play:hover {
+            box-shadow: 
+                0 12px 40px rgba(102, 126, 234, 0.6),
+                0 0 0 1px rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .btn-submit {
+            background: linear-gradient(135deg, var(--ib-pink) 0%, #f472b6 100%);
+            color: white;
+            box-shadow: 0 8px 30px rgba(236, 72, 153, 0.4);
+        }
+        
+        .btn-submit:hover {
+            box-shadow: 0 12px 40px rgba(236, 72, 153, 0.6);
+            transform: translateY(-2px);
+        }
+        
+        .tap-instruction {
+            color: var(--ib-purple-light);
+            font-size: 14px;
+            margin-top: 24px;
+            opacity: 0.8;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        /* Stats row */
+        .stats-row {
+            display: flex;
+            gap: 32px;
+            margin-bottom: 24px;
+        }
+        
+        .stat {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--ib-white);
+        }
+        
+        .stat-label {
+            font-size: 11px;
+            color: var(--ib-purple-light);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        /* New high score animation */
+        .new-best {
+            animation: newBest 0.5s ease;
+        }
+        
+        @keyframes newBest {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); color: var(--ib-gold); }
+        }
+    </style>
+</head>
+<body>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+    
+    <div id="game-container">
+        <div id="score-display">0</div>
+        <div id="height-indicator">Height: 0</div>
+        <div id="combo-display">🔥 x3 COMBO</div>
+        <div id="perfect-indicator">PERFECT!</div>
+        <canvas id="game-canvas"></canvas>
+        
+        <div id="start-screen">
+            <div class="wifi-icon">📶</div>
+            <div class="brand-logo">Instabridge</div>
+            <h1>Stack Tower</h1>
+            <p class="subtitle">Build the highest tower</p>
+            <button class="btn btn-play" onclick="startGame()">Play</button>
+            <p class="tap-instruction">Tap or press Space to drop blocks</p>
+        </div>
+        
+        <div id="game-over-screen" class="hidden">
+            <div id="medal">🏆</div>
+            <h2>Tower Collapsed!</h2>
+            <p class="score-label">Final Height</p>
+            <p class="final-score"><span id="final-score">0</span></p>
+            <div class="stats-row">
+                <div class="stat">
+                    <div class="stat-value" id="stat-perfects">0</div>
+                    <div class="stat-label">Perfects</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="stat-combo">0</div>
+                    <div class="stat-label">Max Combo</div>
+                </div>
+            </div>
+            <p class="best-score">🏅 Best: <span id="best-score">0</span></p>
+            <button class="btn btn-submit" onclick="submitScore()">✓ Submit</button>
+            <button class="btn btn-play" onclick="handlePlayAgain()">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // STREAK GAMES SDK - BRIDGE INTEGRATION
+        // ============================================
+        const StreakBridge = {
+            isInApp: function() {
+                return typeof window.AndroidBridge !== 'undefined';
+            },
+            start: function() {
+                if (this.isInApp()) {
+                    window.AndroidBridge.onGameStart();
+                }
+                console.log('[StreakBridge] Game started');
+            },
+            complete: function(score) {
+                if (this.isInApp()) {
+                    window.AndroidBridge.onGameComplete(score);
+                } else {
+                    alert('🎮 Score: ' + score + '\n\nIn the Instabridge app, this would submit your score!');
+                }
+                console.log('[StreakBridge] Score submitted:', score);
+            },
+            playAgain: function() {
+                if (this.isInApp()) {
+                    window.AndroidBridge.playAgain();
+                } else {
+                    console.log('[StreakBridge] Play Again (web fallback)');
+                    startGame();
+                }
+            },
+            log: function(msg) {
+                if (this.isInApp()) {
+                    window.AndroidBridge.log(msg);
+                }
+                console.log('[StreakBridge]', msg);
+            }
+        };
+
+        // ============================================
+        // GAME VARIABLES
+        // ============================================
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Responsive canvas sizing
+        function resizeCanvas() {
+            const maxWidth = 400;
+            const maxHeight = 600;
+            const containerWidth = Math.min(window.innerWidth - 40, maxWidth);
+            const containerHeight = Math.min(window.innerHeight - 100, maxHeight);
+            
+            canvas.width = containerWidth;
+            canvas.height = containerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        
+        // Game state
+        let gameRunning = false;
+        let gameOver = false;
+        let score = 0;
+        let bestScore = parseInt(localStorage.getItem('instabridgeStackBest') || '0');
+        let perfectCount = 0;
+        let comboCount = 0;
+        let maxCombo = 0;
+        
+        // Stack properties
+        let stack = [];
+        let currentBlock = null;
+        let fallingBlocks = [];
+        
+        // Block settings
+        const INITIAL_BLOCK_WIDTH = 200;
+        const BLOCK_HEIGHT = 30;
+        const PERFECT_THRESHOLD = 5; // pixels tolerance for perfect placement
+        const BLOCK_SPEED_INITIAL = 3;
+        const BLOCK_SPEED_INCREMENT = 0.15;
+        
+        // Colors - Instabridge gradient palette
+        const colors = [
+            { main: '#667eea', shadow: '#5a67d8', highlight: '#818cf8' },
+            { main: '#764ba2', shadow: '#6b21a8', highlight: '#a855f7' },
+            { main: '#ec4899', shadow: '#db2777', highlight: '#f472b6' },
+            { main: '#8b5cf6', shadow: '#7c3aed', highlight: '#a78bfa' },
+            { main: '#6366f1', shadow: '#4f46e5', highlight: '#818cf8' },
+            { main: '#a855f7', shadow: '#9333ea', highlight: '#c084fc' },
+            { main: '#f472b6', shadow: '#ec4899', highlight: '#f9a8d4' },
+            { main: '#22d3ee', shadow: '#06b6d4', highlight: '#67e8f9' },
+        ];
+        
+        // Camera/view offset for scrolling effect
+        let cameraY = 0;
+        let targetCameraY = 0;
+        
+        // ============================================
+        // GAME FUNCTIONS
+        // ============================================
+        
+        function getColorForLevel(level) {
+            return colors[level % colors.length];
+        }
+        
+        function resetGame() {
+            stack = [];
+            fallingBlocks = [];
+            currentBlock = null;
+            score = 0;
+            perfectCount = 0;
+            comboCount = 0;
+            maxCombo = 0;
+            cameraY = 0;
+            targetCameraY = 0;
+            gameOver = false;
+            
+            // Create base block
+            const baseBlock = {
+                x: canvas.width / 2 - INITIAL_BLOCK_WIDTH / 2,
+                y: canvas.height - BLOCK_HEIGHT - 50,
+                width: INITIAL_BLOCK_WIDTH,
+                height: BLOCK_HEIGHT,
+                color: getColorForLevel(0)
+            };
+            stack.push(baseBlock);
+            
+            // Create first moving block
+            spawnNewBlock();
+            
+            document.getElementById('score-display').textContent = '0';
+            document.getElementById('height-indicator').textContent = 'Height: 0';
+            document.getElementById('combo-display').classList.remove('show');
+        }
+        
+        function spawnNewBlock() {
+            const lastBlock = stack[stack.length - 1];
+            const level = stack.length;
+            const speed = BLOCK_SPEED_INITIAL + (level * BLOCK_SPEED_INCREMENT);
+            
+            currentBlock = {
+                x: 0,
+                y: lastBlock.y - BLOCK_HEIGHT,
+                width: lastBlock.width,
+                height: BLOCK_HEIGHT,
+                color: getColorForLevel(level),
+                direction: 1,
+                speed: Math.min(speed, 12) // Cap max speed
+            };
+        }
+        
+        function startGame() {
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('game-over-screen').classList.add('hidden');
+            
+            resetGame();
+            gameRunning = true;
+            
+            StreakBridge.start();
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        function endGame() {
+            gameRunning = false;
+            gameOver = true;
+            
+            // Update best score
+            if (score > bestScore) {
+                bestScore = score;
+                localStorage.setItem('instabridgeStackBest', bestScore.toString());
+            }
+            
+            // Update UI
+            document.getElementById('final-score').textContent = score;
+            document.getElementById('best-score').textContent = bestScore;
+            document.getElementById('stat-perfects').textContent = perfectCount;
+            document.getElementById('stat-combo').textContent = maxCombo;
+            
+            // Set medal based on score
+            let medal = '🎮';
+            if (score >= 50) medal = '🏆';
+            else if (score >= 35) medal = '🥇';
+            else if (score >= 20) medal = '🥈';
+            else if (score >= 10) medal = '🥉';
+            document.getElementById('medal').textContent = medal;
+            
+            document.getElementById('game-over-screen').classList.remove('hidden');
+            
+            StreakBridge.log('Game over. Score: ' + score + ', Perfects: ' + perfectCount);
+        }
+        
+        function submitScore() {
+            StreakBridge.complete(score);
+        }
+        
+        function handlePlayAgain() {
+            StreakBridge.playAgain();
+        }
+        
+        function dropBlock() {
+            if (!gameRunning || gameOver || !currentBlock) return;
+            
+            const lastBlock = stack[stack.length - 1];
+            
+            // Calculate overlap
+            const overlapLeft = Math.max(currentBlock.x, lastBlock.x);
+            const overlapRight = Math.min(currentBlock.x + currentBlock.width, lastBlock.x + lastBlock.width);
+            const overlapWidth = overlapRight - overlapLeft;
+            
+            // Check if block missed completely
+            if (overlapWidth <= 0) {
+                // Block falls off - game over
+                fallingBlocks.push({
+                    x: currentBlock.x,
+                    y: currentBlock.y,
+                    width: currentBlock.width,
+                    height: currentBlock.height,
+                    color: currentBlock.color,
+                    velocityY: 0,
+                    velocityX: currentBlock.direction * 2
+                });
+                currentBlock = null;
+                
+                // Delay game over for visual effect
+                setTimeout(endGame, 500);
+                return;
+            }
+            
+            // Check for perfect placement
+            const isPerfect = Math.abs(currentBlock.x - lastBlock.x) <= PERFECT_THRESHOLD;
+            
+            if (isPerfect) {
+                // Perfect placement - keep full width and center on last block
+                currentBlock.x = lastBlock.x;
+                currentBlock.width = lastBlock.width;
+                perfectCount++;
+                comboCount++;
+                maxCombo = Math.max(maxCombo, comboCount);
+                
+                // Show perfect indicator
+                showPerfectIndicator();
+                
+                // Bonus points for combo
+                score += 1 + Math.floor(comboCount / 3);
+                
+                // Update combo display
+                if (comboCount >= 3) {
+                    document.getElementById('combo-display').textContent = '🔥 x' + comboCount + ' COMBO';
+                    document.getElementById('combo-display').classList.add('show');
+                }
+            } else {
+                // Not perfect - trim the block
+                comboCount = 0;
+                document.getElementById('combo-display').classList.remove('show');
+                
+                // Create falling piece for the trimmed part
+                if (currentBlock.x < lastBlock.x) {
+                    // Left side falls off
+                    const fallWidth = lastBlock.x - currentBlock.x;
+                    fallingBlocks.push({
+                        x: currentBlock.x,
+                        y: currentBlock.y,
+                        width: fallWidth,
+                        height: BLOCK_HEIGHT,
+                        color: currentBlock.color,
+                        velocityY: 0,
+                        velocityX: -3
+                    });
+                } else {
+                    // Right side falls off
+                    const fallWidth = (currentBlock.x + currentBlock.width) - (lastBlock.x + lastBlock.width);
+                    fallingBlocks.push({
+                        x: lastBlock.x + lastBlock.width,
+                        y: currentBlock.y,
+                        width: fallWidth,
+                        height: BLOCK_HEIGHT,
+                        color: currentBlock.color,
+                        velocityY: 0,
+                        velocityX: 3
+                    });
+                }
+                
+                // Adjust current block to the overlap area
+                currentBlock.x = overlapLeft;
+                currentBlock.width = overlapWidth;
+                
+                score++;
+            }
+            
+            // Check if block is too small to continue
+            if (currentBlock.width < 10) {
+                stack.push({...currentBlock});
+                currentBlock = null;
+                setTimeout(endGame, 300);
+                return;
+            }
+            
+            // Add block to stack
+            stack.push({...currentBlock});
+            
+            // Update score display
+            document.getElementById('score-display').textContent = score;
+            document.getElementById('height-indicator').textContent = 'Height: ' + stack.length;
+            
+            // Move camera up
+            if (stack.length > 10) {
+                targetCameraY = (stack.length - 10) * BLOCK_HEIGHT;
+            }
+            
+            // Spawn next block
+            spawnNewBlock();
+        }
+        
+        function showPerfectIndicator() {
+            const indicator = document.getElementById('perfect-indicator');
+            indicator.classList.remove('show');
+            void indicator.offsetWidth; // Trigger reflow
+            indicator.classList.add('show');
+        }
+        
+        function update() {
+            if (!gameRunning || gameOver) return;
+            
+            // Update current block position
+            if (currentBlock) {
+                currentBlock.x += currentBlock.direction * currentBlock.speed;
+                
+                // Bounce off walls
+                if (currentBlock.x + currentBlock.width > canvas.width) {
+                    currentBlock.direction = -1;
+                } else if (currentBlock.x < 0) {
+                    currentBlock.direction = 1;
+                }
+            }
+            
+            // Update falling blocks
+            for (let i = fallingBlocks.length - 1; i >= 0; i--) {
+                fallingBlocks[i].velocityY += 0.5; // Gravity
+                fallingBlocks[i].y += fallingBlocks[i].velocityY;
+                fallingBlocks[i].x += fallingBlocks[i].velocityX;
+                
+                // Remove if off screen
+                if (fallingBlocks[i].y > canvas.height + 100) {
+                    fallingBlocks.splice(i, 1);
+                }
+            }
+            
+            // Smooth camera movement
+            cameraY += (targetCameraY - cameraY) * 0.1;
+        }
+        
+        function draw() {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw background gradient
+            const bgGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            bgGradient.addColorStop(0, '#1e1b4b');
+            bgGradient.addColorStop(0.5, '#312e81');
+            bgGradient.addColorStop(1, '#1e1b4b');
+            ctx.fillStyle = bgGradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw subtle grid
+            ctx.strokeStyle = 'rgba(102, 126, 234, 0.05)';
+            ctx.lineWidth = 1;
+            for (let x = 0; x < canvas.width; x += 40) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < canvas.height; y += 40) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+            
+            // Draw ground/base platform
+            const groundY = canvas.height - 50 + cameraY;
+            ctx.fillStyle = '#1e1b4b';
+            ctx.fillRect(0, groundY, canvas.width, 50);
+            
+            // Draw ground line
+            const groundGradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+            groundGradient.addColorStop(0, 'transparent');
+            groundGradient.addColorStop(0.5, '#667eea');
+            groundGradient.addColorStop(1, 'transparent');
+            ctx.fillStyle = groundGradient;
+            ctx.fillRect(0, groundY, canvas.width, 3);
+            
+            // Draw stacked blocks
+            stack.forEach((block, index) => {
+                drawBlock(block.x, block.y + cameraY, block.width, block.height, block.color, index === stack.length - 1);
+            });
+            
+            // Draw current moving block
+            if (currentBlock) {
+                drawBlock(currentBlock.x, currentBlock.y + cameraY, currentBlock.width, currentBlock.height, currentBlock.color, true);
+                
+                // Draw guide line
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                ctx.setLineDash([5, 5]);
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(currentBlock.x, currentBlock.y + currentBlock.height + cameraY);
+                ctx.lineTo(currentBlock.x, canvas.height);
+                ctx.moveTo(currentBlock.x + currentBlock.width, currentBlock.y + currentBlock.height + cameraY);
+                ctx.lineTo(currentBlock.x + currentBlock.width, canvas.height);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+            
+            // Draw falling blocks
+            fallingBlocks.forEach(block => {
+                ctx.save();
+                ctx.globalAlpha = 0.8;
+                drawBlock(block.x, block.y + cameraY, block.width, block.height, block.color, false);
+                ctx.restore();
+            });
+        }
+        
+        function drawBlock(x, y, width, height, color, isActive) {
+            // Main block body
+            const gradient = ctx.createLinearGradient(x, y, x, y + height);
+            gradient.addColorStop(0, color.highlight);
+            gradient.addColorStop(0.5, color.main);
+            gradient.addColorStop(1, color.shadow);
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(x, y, width, height);
+            
+            // Top highlight
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.fillRect(x, y, width, 3);
+            
+            // Bottom shadow
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.fillRect(x, y + height - 3, width, 3);
+            
+            // Side shadows for 3D effect
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            ctx.fillRect(x, y, 3, height);
+            
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+            ctx.fillRect(x + width - 3, y, 3, height);
+            
+            // Glow effect for active block
+            if (isActive) {
+                ctx.shadowColor = color.main;
+                ctx.shadowBlur = 15;
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(x + 1, y + 1, width - 2, height - 2);
+                ctx.shadowBlur = 0;
+            }
+        }
+        
+        function gameLoop() {
+            update();
+            draw();
+            
+            if (gameRunning) {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+        
+        // ============================================
+        // INPUT HANDLING
+        // ============================================
+        
+        // Touch/click
+        document.addEventListener('touchstart', function(e) {
+            if (gameRunning && !gameOver) {
+                e.preventDefault();
+                dropBlock();
+            }
+        }, { passive: false });
+        
+        canvas.addEventListener('click', function(e) {
+            if (gameRunning && !gameOver) {
+                dropBlock();
+            }
+        });
+        
+        // Keyboard
+        document.addEventListener('keydown', function(e) {
+            if (e.code === 'Space' || e.key === ' ') {
+                e.preventDefault();
+                if (!gameRunning && !gameOver) {
+                    startGame();
+                } else if (gameRunning && !gameOver) {
+                    dropBlock();
+                }
+            }
+        });
+        
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        
+        // Initial draw
+        resetGame();
+        draw();
+        document.getElementById('best-score').textContent = bestScore;
+    </script>
+</body>
+</html>
