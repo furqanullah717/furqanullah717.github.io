@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Instabridge Color Switch</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: #0a0a0f;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+        
+        /* Animated background */
+        .bg-glow {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(102, 126, 234, 0.15) 0%, transparent 70%);
+            pointer-events: none;
+            animation: pulse 4s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.5; }
+            50% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.8; }
+        }
+        
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 1;
+        }
+        
+        #score-display {
+            position: absolute;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 72px;
+            font-weight: 800;
+            color: white;
+            text-shadow: 0 0 40px rgba(102, 126, 234, 0.6);
+            z-index: 10;
+            letter-spacing: -2px;
+        }
+        
+        canvas {
+            display: block;
+            background: transparent;
+            border-radius: 20px;
+        }
+        
+        #start-screen, #game-over-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(10, 10, 15, 0.95);
+            backdrop-filter: blur(20px);
+            z-index: 20;
+            border-radius: 20px;
+        }
+        
+        .brand-logo {
+            font-size: 12px;
+            color: rgba(255,255,255,0.5);
+            margin-bottom: 8px;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+        }
+        
+        #start-screen h1, #game-over-screen h1 {
+            font-size: 36px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+            letter-spacing: -1px;
+        }
+        
+        .subtitle {
+            font-size: 14px;
+            color: rgba(255,255,255,0.4);
+            margin-bottom: 40px;
+        }
+        
+        #game-over-screen h2 {
+            font-size: 28px;
+            font-weight: 800;
+            color: white;
+            margin-bottom: 20px;
+        }
+        
+        .final-score {
+            font-size: 64px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea 0%, #f093fb 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+        
+        .score-label {
+            font-size: 14px;
+            color: rgba(255,255,255,0.4);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 8px;
+        }
+        
+        .best-score {
+            font-size: 16px;
+            color: rgba(255,255,255,0.6);
+            margin-bottom: 40px;
+        }
+        
+        .best-score span {
+            color: #f093fb;
+            font-weight: 600;
+        }
+        
+        .color-wheel-icon {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            animation: spin 8s linear infinite;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .btn {
+            padding: 16px 48px;
+            font-size: 16px;
+            font-weight: 600;
+            font-family: 'Outfit', sans-serif;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            margin: 8px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .btn:active {
+            transform: scale(0.95);
+        }
+        
+        .btn-play {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 8px 32px rgba(102, 126, 234, 0.4),
+                        inset 0 1px 0 rgba(255,255,255,0.2);
+        }
+        
+        .btn-play:hover {
+            box-shadow: 0 12px 48px rgba(102, 126, 234, 0.6),
+                        inset 0 1px 0 rgba(255,255,255,0.2);
+            transform: translateY(-2px);
+        }
+        
+        .btn-submit {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            box-shadow: 0 8px 32px rgba(240, 147, 251, 0.4),
+                        inset 0 1px 0 rgba(255,255,255,0.2);
+        }
+        
+        .btn-submit:hover {
+            box-shadow: 0 12px 48px rgba(240, 147, 251, 0.6),
+                        inset 0 1px 0 rgba(255,255,255,0.2);
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.15);
+        }
+        
+        .tap-instruction {
+            color: rgba(255,255,255,0.4);
+            font-size: 14px;
+            margin-top: 30px;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        #medal {
+            font-size: 60px;
+            margin-bottom: 20px;
+            filter: drop-shadow(0 4px 20px rgba(255, 215, 0, 0.4));
+        }
+        
+        .new-best {
+            display: inline-block;
+            background: linear-gradient(135deg, #f5af19 0%, #f12711 100%);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-left: 8px;
+            animation: bounce 0.5s ease;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        .color-preview {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 30px;
+        }
+        
+        .color-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            animation: colorPulse 2s ease-in-out infinite;
+        }
+        
+        .color-dot:nth-child(1) { background: #f093fb; animation-delay: 0s; }
+        .color-dot:nth-child(2) { background: #667eea; animation-delay: 0.2s; }
+        .color-dot:nth-child(3) { background: #5fd3f3; animation-delay: 0.4s; }
+        .color-dot:nth-child(4) { background: #ffd700; animation-delay: 0.6s; }
+        
+        @keyframes colorPulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.8; }
+        }
+        
+        /* Particle effects container */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+        
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            animation: float 15s infinite linear;
+        }
+        
+        @keyframes float {
+            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-100vh) rotate(720deg); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-glow"></div>
+    <div class="particles" id="particles"></div>
+    
+    <div id="game-container">
+        <div id="score-display" class="hidden">0</div>
+        <canvas id="game-canvas"></canvas>
+        
+        <div id="start-screen">
+            <svg class="color-wheel-icon" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="45" fill="none" stroke-width="10" stroke-linecap="round"
+                    stroke="#f093fb" stroke-dasharray="70.7 212.1" stroke-dashoffset="0"/>
+                <circle cx="50" cy="50" r="45" fill="none" stroke-width="10" stroke-linecap="round"
+                    stroke="#667eea" stroke-dasharray="70.7 212.1" stroke-dashoffset="-70.7"/>
+                <circle cx="50" cy="50" r="45" fill="none" stroke-width="10" stroke-linecap="round"
+                    stroke="#5fd3f3" stroke-dasharray="70.7 212.1" stroke-dashoffset="-141.4"/>
+                <circle cx="50" cy="50" r="45" fill="none" stroke-width="10" stroke-linecap="round"
+                    stroke="#ffd700" stroke-dasharray="70.7 212.1" stroke-dashoffset="-212.1"/>
+            </svg>
+            <div class="brand-logo">INSTABRIDGE</div>
+            <h1>Color Switch</h1>
+            <p class="subtitle">Match the colors, beat your best!</p>
+            <div class="color-preview">
+                <div class="color-dot"></div>
+                <div class="color-dot"></div>
+                <div class="color-dot"></div>
+                <div class="color-dot"></div>
+            </div>
+            <button class="btn btn-play" onclick="startGame()">Play</button>
+            <p class="tap-instruction">Tap or press Space to jump</p>
+        </div>
+        
+        <div id="game-over-screen" class="hidden">
+            <div id="medal">🎮</div>
+            <h2>Game Over</h2>
+            <p class="score-label">Score</p>
+            <p class="final-score"><span id="final-score">0</span></p>
+            <p class="best-score">Best: <span id="best-score">0</span><span id="new-best" class="new-best hidden">NEW!</span></p>
+            <button class="btn btn-submit" onclick="submitScore()">Submit Score</button>
+            <button class="btn btn-secondary" onclick="handlePlayAgain()">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // STREAK GAMES SDK - BRIDGE INTEGRATION
+        // ============================================
+        const StreakBridge = {
+            isInApp: function() {
+                return typeof window.AndroidBridge !== 'undefined';
+            },
+            start: function() {
+                if (this.isInApp()) {
+                    window.AndroidBridge.onGameStart();
+                }
+                console.log('[StreakBridge] Game started');
+            },
+            complete: function(score) {
+                if (this.isInApp()) {
+                    window.AndroidBridge.onGameComplete(score);
+                } else {
+                    alert('🎮 Score: ' + score + '\n\nIn the Instabridge app, this would submit your score!');
+                }
+                console.log('[StreakBridge] Score submitted:', score);
+            },
+            playAgain: function() {
+                if (this.isInApp()) {
+                    window.AndroidBridge.playAgain();
+                } else {
+                    console.log('[StreakBridge] Play Again (web fallback)');
+                    startGame();
+                }
+            },
+            log: function(msg) {
+                if (this.isInApp()) {
+                    window.AndroidBridge.log(msg);
+                }
+                console.log('[StreakBridge]', msg);
+            }
+        };
+
+        // ============================================
+        // PARTICLE BACKGROUND
+        // ============================================
+        function createParticles() {
+            const container = document.getElementById('particles');
+            const colors = ['#f093fb', '#667eea', '#5fd3f3', '#ffd700'];
+            
+            for (let i = 0; i < 20; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+                particle.style.animationDelay = Math.random() * 15 + 's';
+                particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+                container.appendChild(particle);
+            }
+        }
+        createParticles();
+
+        // ============================================
+        // GAME VARIABLES
+        // ============================================
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Responsive canvas sizing
+        function resizeCanvas() {
+            const maxWidth = 400;
+            const maxHeight = 700;
+            const containerWidth = Math.min(window.innerWidth - 40, maxWidth);
+            const containerHeight = Math.min(window.innerHeight - 60, maxHeight);
+            
+            canvas.width = containerWidth;
+            canvas.height = containerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        
+        // Instabridge color palette
+        const COLORS = {
+            pink: '#f093fb',
+            purple: '#667eea',
+            cyan: '#5fd3f3',
+            gold: '#ffd700'
+        };
+        const COLOR_ARRAY = [COLORS.pink, COLORS.purple, COLORS.cyan, COLORS.gold];
+        const COLOR_NAMES = ['pink', 'purple', 'cyan', 'gold'];
+        
+        // Game state
+        let gameRunning = false;
+        let gameOver = false;
+        let gameStarted = false;
+        let score = 0;
+        let bestScore = parseInt(localStorage.getItem('instabridgeColorSwitchBest') || '0');
+        let frameCount = 0;
+        let cameraY = 0;
+        let targetCameraY = 0;
+        
+        // Ball properties
+        const ball = {
+            x: 0,
+            y: 0,
+            radius: 15,
+            velocity: 0,
+            gravity: 0.35,
+            jumpStrength: -10,
+            colorIndex: 0,
+            trail: []
+        };
+        
+        // Obstacles
+        let obstacles = [];
+        const OBSTACLE_SPACING = 280;
+        
+        // ============================================
+        // OBSTACLE TYPES
+        // ============================================
+        
+        class RotatingWheel {
+            constructor(y) {
+                this.y = y;
+                this.x = canvas.width / 2;
+                this.radius = 80;
+                this.thickness = 18;
+                this.rotation = Math.random() * Math.PI * 2;
+                this.rotationSpeed = 0.02 + Math.random() * 0.01;
+                this.direction = Math.random() > 0.5 ? 1 : -1;
+                this.passed = false;
+            }
+            
+            update() {
+                this.rotation += this.rotationSpeed * this.direction;
+            }
+            
+            draw(offsetY) {
+                const screenY = this.y - offsetY;
+                if (screenY < -150 || screenY > canvas.height + 150) return;
+                
+                ctx.save();
+                ctx.translate(this.x, screenY);
+                ctx.rotate(this.rotation);
+                
+                // Draw each quarter
+                for (let i = 0; i < 4; i++) {
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.radius, i * Math.PI / 2, (i + 1) * Math.PI / 2);
+                    ctx.lineWidth = this.thickness;
+                    ctx.strokeStyle = COLOR_ARRAY[i];
+                    ctx.lineCap = 'round';
+                    ctx.stroke();
+                }
+                
+                // Glow effect
+                ctx.globalAlpha = 0.3;
+                for (let i = 0; i < 4; i++) {
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.radius, i * Math.PI / 2, (i + 1) * Math.PI / 2);
+                    ctx.lineWidth = this.thickness + 10;
+                    ctx.strokeStyle = COLOR_ARRAY[i];
+                    ctx.stroke();
+                }
+                
+                ctx.restore();
+            }
+            
+            checkCollision(ballX, ballY, ballRadius, colorIndex) {
+                const dx = ballX - this.x;
+                const dy = ballY - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // Check if ball is in the ring zone
+                const innerRadius = this.radius - this.thickness / 2 - ballRadius;
+                const outerRadius = this.radius + this.thickness / 2 + ballRadius;
+                
+                if (distance > innerRadius && distance < outerRadius) {
+                    // Calculate angle of ball relative to wheel center
+                    let angle = Math.atan2(dy, dx) - this.rotation;
+                    angle = ((angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+                    
+                    // Determine which color segment
+                    const segmentIndex = Math.floor(angle / (Math.PI / 2)) % 4;
+                    
+                    // Collision if wrong color
+                    if (segmentIndex !== colorIndex) {
+                        return true;
+                    }
+                }
+                
+                return false;
+            }
+            
+            checkPassed(ballY) {
+                return ballY < this.y - this.radius && !this.passed;
+            }
+        }
+        
+        class DoubleWheel {
+            constructor(y) {
+                this.y = y;
+                this.x = canvas.width / 2;
+                this.radius1 = 90;
+                this.radius2 = 55;
+                this.thickness = 16;
+                this.rotation = Math.random() * Math.PI * 2;
+                this.rotationSpeed = 0.018;
+                this.passed = false;
+            }
+            
+            update() {
+                this.rotation += this.rotationSpeed;
+            }
+            
+            draw(offsetY) {
+                const screenY = this.y - offsetY;
+                if (screenY < -180 || screenY > canvas.height + 180) return;
+                
+                ctx.save();
+                ctx.translate(this.x, screenY);
+                
+                // Outer wheel (rotates one direction)
+                ctx.save();
+                ctx.rotate(this.rotation);
+                for (let i = 0; i < 4; i++) {
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.radius1, i * Math.PI / 2, (i + 1) * Math.PI / 2);
+                    ctx.lineWidth = this.thickness;
+                    ctx.strokeStyle = COLOR_ARRAY[i];
+                    ctx.lineCap = 'round';
+                    ctx.stroke();
+                }
+                ctx.restore();
+                
+                // Inner wheel (rotates opposite)
+                ctx.save();
+                ctx.rotate(-this.rotation * 1.5);
+                for (let i = 0; i < 4; i++) {
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.radius2, i * Math.PI / 2, (i + 1) * Math.PI / 2);
+                    ctx.lineWidth = this.thickness;
+                    ctx.strokeStyle = COLOR_ARRAY[(i + 2) % 4];
+                    ctx.lineCap = 'round';
+                    ctx.stroke();
+                }
+                ctx.restore();
+                
+                ctx.restore();
+            }
+            
+            checkCollision(ballX, ballY, ballRadius, colorIndex) {
+                const dx = ballX - this.x;
+                const dy = ballY - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // Check outer ring
+                const outer1 = this.radius1 - this.thickness / 2 - ballRadius;
+                const outer2 = this.radius1 + this.thickness / 2 + ballRadius;
+                
+                if (distance > outer1 && distance < outer2) {
+                    let angle = Math.atan2(dy, dx) - this.rotation;
+                    angle = ((angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+                    const segmentIndex = Math.floor(angle / (Math.PI / 2)) % 4;
+                    if (segmentIndex !== colorIndex) return true;
+                }
+                
+                // Check inner ring
+                const inner1 = this.radius2 - this.thickness / 2 - ballRadius;
+                const inner2 = this.radius2 + this.thickness / 2 + ballRadius;
+                
+                if (distance > inner1 && distance < inner2) {
+                    let angle = Math.atan2(dy, dx) + this.rotation * 1.5;
+                    angle = ((angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+                    const segmentIndex = (Math.floor(angle / (Math.PI / 2)) + 2) % 4;
+                    if (segmentIndex !== colorIndex) return true;
+                }
+                
+                return false;
+            }
+            
+            checkPassed(ballY) {
+                return ballY < this.y - this.radius1 && !this.passed;
+            }
+        }
+        
+        class HorizontalBars {
+            constructor(y) {
+                this.y = y;
+                this.x = 0;
+                this.barHeight = 25;
+                this.gap = 45;
+                this.speed = 2;
+                this.direction = Math.random() > 0.5 ? 1 : -1;
+                this.offset = Math.random() * canvas.width;
+                this.passed = false;
+            }
+            
+            update() {
+                this.offset += this.speed * this.direction;
+            }
+            
+            draw(offsetY) {
+                const screenY = this.y - offsetY;
+                if (screenY < -100 || screenY > canvas.height + 100) return;
+                
+                const barWidth = canvas.width / 4;
+                
+                for (let i = 0; i < 8; i++) {
+                    let x = ((this.offset + i * barWidth) % (canvas.width + barWidth * 4)) - barWidth * 2;
+                    
+                    ctx.fillStyle = COLOR_ARRAY[i % 4];
+                    ctx.fillRect(x, screenY - this.barHeight / 2, barWidth - 4, this.barHeight);
+                    
+                    // Glow
+                    ctx.globalAlpha = 0.3;
+                    ctx.shadowColor = COLOR_ARRAY[i % 4];
+                    ctx.shadowBlur = 15;
+                    ctx.fillRect(x, screenY - this.barHeight / 2, barWidth - 4, this.barHeight);
+                    ctx.shadowBlur = 0;
+                    ctx.globalAlpha = 1;
+                }
+            }
+            
+            checkCollision(ballX, ballY, ballRadius, colorIndex) {
+                const screenY = this.y;
+                
+                if (ballY + ballRadius > screenY - this.barHeight / 2 && 
+                    ballY - ballRadius < screenY + this.barHeight / 2) {
+                    
+                    const barWidth = canvas.width / 4;
+                    
+                    for (let i = 0; i < 8; i++) {
+                        let x = ((this.offset + i * barWidth) % (canvas.width + barWidth * 4)) - barWidth * 2;
+                        
+                        if (ballX + ballRadius > x && ballX - ballRadius < x + barWidth - 4) {
+                            if (i % 4 !== colorIndex) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+                
+                return false;
+            }
+            
+            checkPassed(ballY) {
+                return ballY < this.y - this.barHeight && !this.passed;
+            }
+        }
+        
+        // Color switcher pickup
+        class ColorSwitcher {
+            constructor(y) {
+                this.y = y;
+                this.x = canvas.width / 2;
+                this.radius = 18;
+                this.rotation = 0;
+                this.collected = false;
+                this.pulse = 0;
+            }
+            
+            update() {
+                this.rotation += 0.05;
+                this.pulse += 0.1;
+            }
+            
+            draw(offsetY) {
+                if (this.collected) return;
+                
+                const screenY = this.y - offsetY;
+                if (screenY < -50 || screenY > canvas.height + 50) return;
+                
+                const pulseSize = Math.sin(this.pulse) * 3;
+                
+                ctx.save();
+                ctx.translate(this.x, screenY);
+                ctx.rotate(this.rotation);
+                
+                // Outer glow
+                ctx.globalAlpha = 0.3;
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius + 10 + pulseSize, 0, Math.PI * 2);
+                ctx.fillStyle = '#fff';
+                ctx.fill();
+                
+                ctx.globalAlpha = 1;
+                
+                // Draw quarters
+                for (let i = 0; i < 4; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.arc(0, 0, this.radius + pulseSize, i * Math.PI / 2, (i + 1) * Math.PI / 2);
+                    ctx.closePath();
+                    ctx.fillStyle = COLOR_ARRAY[i];
+                    ctx.fill();
+                }
+                
+                // Center white circle
+                ctx.beginPath();
+                ctx.arc(0, 0, 6, 0, Math.PI * 2);
+                ctx.fillStyle = '#fff';
+                ctx.fill();
+                
+                ctx.restore();
+            }
+            
+            checkCollision(ballX, ballY, ballRadius) {
+                if (this.collected) return false;
+                
+                const dx = ballX - this.x;
+                const dy = ballY - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                return distance < this.radius + ballRadius;
+            }
+        }
+        
+        // ============================================
+        // GAME FUNCTIONS
+        // ============================================
+        
+        function resetGame() {
+            ball.x = canvas.width / 2;
+            ball.y = canvas.height - 150;
+            ball.velocity = 0;
+            ball.colorIndex = Math.floor(Math.random() * 4);
+            ball.trail = [];
+            
+            obstacles = [];
+            cameraY = 0;
+            targetCameraY = 0;
+            score = 0;
+            frameCount = 0;
+            gameOver = false;
+            gameStarted = false;
+            
+            // Generate initial obstacles
+            for (let i = 1; i <= 5; i++) {
+                spawnObstacle(ball.y - i * OBSTACLE_SPACING);
+            }
+            
+            document.getElementById('score-display').textContent = '0';
+        }
+        
+        function spawnObstacle(y) {
+            const type = Math.random();
+            let obstacle;
+            
+            if (type < 0.4) {
+                obstacle = new RotatingWheel(y);
+            } else if (type < 0.7) {
+                obstacle = new DoubleWheel(y);
+            } else {
+                obstacle = new HorizontalBars(y);
+            }
+            
+            obstacles.push(obstacle);
+            
+            // Add color switcher between obstacles
+            const switcher = new ColorSwitcher(y + OBSTACLE_SPACING / 2);
+            obstacles.push(switcher);
+        }
+        
+        function startGame() {
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('game-over-screen').classList.add('hidden');
+            document.getElementById('score-display').classList.remove('hidden');
+            
+            resetGame();
+            gameRunning = true;
+            
+            StreakBridge.start();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        function endGame() {
+            gameRunning = false;
+            gameOver = true;
+            
+            document.getElementById('score-display').classList.add('hidden');
+            
+            const isNewBest = score > bestScore;
+            if (isNewBest) {
+                bestScore = score;
+                localStorage.setItem('instabridgeColorSwitchBest', bestScore.toString());
+            }
+            
+            document.getElementById('final-score').textContent = score;
+            document.getElementById('best-score').textContent = bestScore;
+            document.getElementById('new-best').classList.toggle('hidden', !isNewBest);
+            
+            // Set medal
+            let medal = '🎮';
+            if (score >= 50) medal = '🏆';
+            else if (score >= 30) medal = '🥇';
+            else if (score >= 20) medal = '🥈';
+            else if (score >= 10) medal = '🥉';
+            document.getElementById('medal').textContent = medal;
+            
+            document.getElementById('game-over-screen').classList.remove('hidden');
+            
+            StreakBridge.log('Game over. Score: ' + score);
+        }
+        
+        function submitScore() {
+            StreakBridge.complete(score);
+        }
+        
+        function handlePlayAgain() {
+            StreakBridge.playAgain();
+        }
+        
+        function jump() {
+            if (!gameRunning || gameOver) return;
+            
+            if (!gameStarted) {
+                gameStarted = true;
+            }
+            
+            ball.velocity = ball.jumpStrength;
+            
+            // Add trail effect
+            for (let i = 0; i < 3; i++) {
+                ball.trail.push({
+                    x: ball.x,
+                    y: ball.y + cameraY,
+                    radius: ball.radius - i * 3,
+                    alpha: 0.5 - i * 0.15,
+                    color: COLOR_ARRAY[ball.colorIndex]
+                });
+            }
+        }
+        
+        function update() {
+            if (!gameRunning || gameOver) return;
+            
+            frameCount++;
+            
+            // Update all obstacles
+            obstacles.forEach(obs => obs.update());
+            
+            // Update trail
+            ball.trail = ball.trail.filter(t => {
+                t.alpha -= 0.02;
+                t.radius -= 0.3;
+                return t.alpha > 0 && t.radius > 0;
+            });
+            
+            if (!gameStarted) {
+                // Hover animation
+                ball.y = canvas.height - 150 + Math.sin(frameCount * 0.05) * 8;
+                return;
+            }
+            
+            // Physics
+            ball.velocity += ball.gravity;
+            ball.velocity = Math.min(ball.velocity, 12);
+            ball.y += ball.velocity;
+            
+            // Camera follow
+            targetCameraY = Math.min(0, -(ball.y - canvas.height + 200));
+            cameraY += (targetCameraY - cameraY) * 0.1;
+            
+            // Spawn new obstacles
+            const highestObstacle = Math.min(...obstacles.filter(o => !(o instanceof ColorSwitcher)).map(o => o.y));
+            if (ball.y - cameraY < highestObstacle + OBSTACLE_SPACING * 3) {
+                spawnObstacle(highestObstacle - OBSTACLE_SPACING);
+            }
+            
+            // Check collisions and scoring
+            for (let obs of obstacles) {
+                if (obs instanceof ColorSwitcher) {
+                    if (obs.checkCollision(ball.x, ball.y, ball.radius)) {
+                        obs.collected = true;
+                        // Change to random different color
+                        let newColor;
+                        do {
+                            newColor = Math.floor(Math.random() * 4);
+                        } while (newColor === ball.colorIndex);
+                        ball.colorIndex = newColor;
+                    }
+                } else {
+                    if (obs.checkCollision(ball.x, ball.y, ball.radius, ball.colorIndex)) {
+                        endGame();
+                        return;
+                    }
+                    
+                    if (obs.checkPassed(ball.y)) {
+                        obs.passed = true;
+                        score++;
+                        document.getElementById('score-display').textContent = score;
+                    }
+                }
+            }
+            
+            // Remove old obstacles
+            obstacles = obstacles.filter(o => o.y > ball.y - 500);
+            
+            // Fall death
+            if (ball.y > canvas.height + 100 - cameraY) {
+                endGame();
+            }
+        }
+        
+        function draw() {
+            // Clear
+            ctx.fillStyle = '#0a0a0f';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw subtle grid
+            ctx.strokeStyle = 'rgba(102, 126, 234, 0.05)';
+            ctx.lineWidth = 1;
+            for (let y = (cameraY % 50); y < canvas.height; y += 50) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+            
+            // Draw trail
+            ball.trail.forEach(t => {
+                ctx.globalAlpha = t.alpha;
+                ctx.beginPath();
+                ctx.arc(t.x, t.y + cameraY, t.radius, 0, Math.PI * 2);
+                ctx.fillStyle = t.color;
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1;
+            
+            // Draw obstacles
+            obstacles.forEach(obs => obs.draw(-cameraY));
+            
+            // Draw ball
+            const ballScreenY = ball.y + cameraY;
+            
+            // Ball glow
+            const gradient = ctx.createRadialGradient(
+                ball.x, ballScreenY, 0,
+                ball.x, ballScreenY, ball.radius * 2
+            );
+            gradient.addColorStop(0, COLOR_ARRAY[ball.colorIndex] + '80');
+            gradient.addColorStop(1, 'transparent');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(ball.x - ball.radius * 2, ballScreenY - ball.radius * 2, ball.radius * 4, ball.radius * 4);
+            
+            // Ball
+            ctx.beginPath();
+            ctx.arc(ball.x, ballScreenY, ball.radius, 0, Math.PI * 2);
+            ctx.fillStyle = COLOR_ARRAY[ball.colorIndex];
+            ctx.fill();
+            
+            // Ball highlight
+            ctx.beginPath();
+            ctx.arc(ball.x - 4, ballScreenY - 4, ball.radius * 0.4, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255,255,255,0.4)';
+            ctx.fill();
+            
+            // Instruction text if not started
+            if (!gameStarted && gameRunning) {
+                ctx.fillStyle = 'rgba(255,255,255,0.6)';
+                ctx.font = '16px Outfit';
+                ctx.textAlign = 'center';
+                ctx.fillText('TAP TO START', canvas.width / 2, canvas.height - 60);
+                ctx.textAlign = 'left';
+            }
+        }
+        
+        function gameLoop() {
+            update();
+            draw();
+            
+            if (gameRunning && !gameOver) {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+        
+        // ============================================
+        // INPUT HANDLING
+        // ============================================
+        
+        document.addEventListener('touchstart', function(e) {
+            if (gameRunning && !gameOver) {
+                e.preventDefault();
+                jump();
+            }
+        }, { passive: false });
+        
+        canvas.addEventListener('click', function(e) {
+            if (gameRunning && !gameOver) {
+                jump();
+            }
+        });
+        
+        document.addEventListener('keydown', function(e) {
+            if (e.code === 'Space' || e.key === ' ') {
+                e.preventDefault();
+                if (!gameRunning && !gameOver) {
+                    startGame();
+                } else if (gameRunning && !gameOver) {
+                    jump();
+                }
+            }
+        });
+        
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        
+        resetGame();
+        draw();
+        document.getElementById('best-score').textContent = bestScore;
+    </script>
+</body>
+</html>
