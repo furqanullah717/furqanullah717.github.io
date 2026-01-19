@@ -428,7 +428,6 @@
             gold: '#ffd700'
         };
         const COLOR_ARRAY = [COLORS.pink, COLORS.purple, COLORS.cyan, COLORS.gold];
-        const COLOR_NAMES = ['pink', 'purple', 'cyan', 'gold'];
         
         // Game state
         let gameRunning = false;
@@ -437,24 +436,25 @@
         let score = 0;
         let bestScore = parseInt(localStorage.getItem('instabridgeColorSwitchBest') || '0');
         let frameCount = 0;
-        let cameraY = 0;
-        let targetCameraY = 0;
+        let cameraY = 0; // Camera offset (increases as ball goes up)
         
         // Ball properties
         const ball = {
             x: 0,
-            y: 0,
-            radius: 15,
+            y: 0, // Screen Y position
             velocity: 0,
-            gravity: 0.35,
-            jumpStrength: -10,
+            gravity: 0.25,        // Reduced from 0.4 - slower fall
+            jumpStrength: -9,     // Reduced from -11 - gentler jump, more control
+            radius: 12,           // Slightly smaller ball
             colorIndex: 0,
             trail: []
         };
         
-        // Obstacles
+        // Obstacles - use screen Y coordinates, adjusted by camera
         let obstacles = [];
-        const OBSTACLE_SPACING = 280;
+        let colorSwitchers = [];
+        const OBSTACLE_SPACING = 320;  // Increased from 280 - more time between obstacles
+        let highestObstacleY = 0; // Track highest (smallest Y) obstacle placed
         
         // ============================================
         // OBSTACLE TYPES
@@ -462,12 +462,12 @@
         
         class RotatingWheel {
             constructor(y) {
-                this.y = y;
+                this.y = y; // World Y position
                 this.x = canvas.width / 2;
                 this.radius = 80;
-                this.thickness = 18;
+                this.thickness = 20;          // Slightly thicker segments - bigger safe zone
                 this.rotation = Math.random() * Math.PI * 2;
-                this.rotationSpeed = 0.02 + Math.random() * 0.01;
+                this.rotationSpeed = 0.012 + Math.random() * 0.006;  // Slower rotation (was 0.02 + 0.01)
                 this.direction = Math.random() > 0.5 ? 1 : -1;
                 this.passed = false;
             }
@@ -476,8 +476,12 @@
                 this.rotation += this.rotationSpeed * this.direction;
             }
             
-            draw(offsetY) {
-                const screenY = this.y - offsetY;
+            getScreenY() {
+                return this.y - cameraY;
+            }
+            
+            draw() {
+                const screenY = this.getScreenY();
                 if (screenY < -150 || screenY > canvas.height + 150) return;
                 
                 ctx.save();
@@ -507,24 +511,20 @@
                 ctx.restore();
             }
             
-            checkCollision(ballX, ballY, ballRadius, colorIndex) {
+            checkCollision(ballScreenY, ballX, ballRadius, colorIndex) {
+                const screenY = this.getScreenY();
                 const dx = ballX - this.x;
-                const dy = ballY - this.y;
+                const dy = ballScreenY - screenY;
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 
-                // Check if ball is in the ring zone
                 const innerRadius = this.radius - this.thickness / 2 - ballRadius;
                 const outerRadius = this.radius + this.thickness / 2 + ballRadius;
                 
                 if (distance > innerRadius && distance < outerRadius) {
-                    // Calculate angle of ball relative to wheel center
                     let angle = Math.atan2(dy, dx) - this.rotation;
                     angle = ((angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
-                    
-                    // Determine which color segment
                     const segmentIndex = Math.floor(angle / (Math.PI / 2)) % 4;
                     
-                    // Collision if wrong color
                     if (segmentIndex !== colorIndex) {
                         return true;
                     }
@@ -533,8 +533,9 @@
                 return false;
             }
             
-            checkPassed(ballY) {
-                return ballY < this.y - this.radius && !this.passed;
+            checkPassed(ballScreenY) {
+                const screenY = this.getScreenY();
+                return ballScreenY < screenY - this.radius && !this.passed;
             }
         }
         
@@ -543,10 +544,10 @@
                 this.y = y;
                 this.x = canvas.width / 2;
                 this.radius1 = 90;
-                this.radius2 = 55;
-                this.thickness = 16;
+                this.radius2 = 50;            // Smaller inner ring - more room to pass
+                this.thickness = 18;
                 this.rotation = Math.random() * Math.PI * 2;
-                this.rotationSpeed = 0.018;
+                this.rotationSpeed = 0.012;   // Slower rotation (was 0.018)
                 this.passed = false;
             }
             
@@ -554,14 +555,18 @@
                 this.rotation += this.rotationSpeed;
             }
             
-            draw(offsetY) {
-                const screenY = this.y - offsetY;
+            getScreenY() {
+                return this.y - cameraY;
+            }
+            
+            draw() {
+                const screenY = this.getScreenY();
                 if (screenY < -180 || screenY > canvas.height + 180) return;
                 
                 ctx.save();
                 ctx.translate(this.x, screenY);
                 
-                // Outer wheel (rotates one direction)
+                // Outer wheel
                 ctx.save();
                 ctx.rotate(this.rotation);
                 for (let i = 0; i < 4; i++) {
@@ -590,12 +595,13 @@
                 ctx.restore();
             }
             
-            checkCollision(ballX, ballY, ballRadius, colorIndex) {
+            checkCollision(ballScreenY, ballX, ballRadius, colorIndex) {
+                const screenY = this.getScreenY();
                 const dx = ballX - this.x;
-                const dy = ballY - this.y;
+                const dy = ballScreenY - screenY;
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 
-                // Check outer ring
+                // Outer ring
                 const outer1 = this.radius1 - this.thickness / 2 - ballRadius;
                 const outer2 = this.radius1 + this.thickness / 2 + ballRadius;
                 
@@ -606,7 +612,7 @@
                     if (segmentIndex !== colorIndex) return true;
                 }
                 
-                // Check inner ring
+                // Inner ring
                 const inner1 = this.radius2 - this.thickness / 2 - ballRadius;
                 const inner2 = this.radius2 + this.thickness / 2 + ballRadius;
                 
@@ -620,18 +626,17 @@
                 return false;
             }
             
-            checkPassed(ballY) {
-                return ballY < this.y - this.radius1 && !this.passed;
+            checkPassed(ballScreenY) {
+                const screenY = this.getScreenY();
+                return ballScreenY < screenY - this.radius1 && !this.passed;
             }
         }
         
         class HorizontalBars {
             constructor(y) {
                 this.y = y;
-                this.x = 0;
-                this.barHeight = 25;
-                this.gap = 45;
-                this.speed = 2;
+                this.barHeight = 22;          // Slightly thinner bars
+                this.speed = 1.2;             // Slower movement (was 2)
                 this.direction = Math.random() > 0.5 ? 1 : -1;
                 this.offset = Math.random() * canvas.width;
                 this.passed = false;
@@ -641,8 +646,12 @@
                 this.offset += this.speed * this.direction;
             }
             
-            draw(offsetY) {
-                const screenY = this.y - offsetY;
+            getScreenY() {
+                return this.y - cameraY;
+            }
+            
+            draw() {
+                const screenY = this.getScreenY();
                 if (screenY < -100 || screenY > canvas.height + 100) return;
                 
                 const barWidth = canvas.width / 4;
@@ -663,11 +672,11 @@
                 }
             }
             
-            checkCollision(ballX, ballY, ballRadius, colorIndex) {
-                const screenY = this.y;
+            checkCollision(ballScreenY, ballX, ballRadius, colorIndex) {
+                const screenY = this.getScreenY();
                 
-                if (ballY + ballRadius > screenY - this.barHeight / 2 && 
-                    ballY - ballRadius < screenY + this.barHeight / 2) {
+                if (ballScreenY + ballRadius > screenY - this.barHeight / 2 && 
+                    ballScreenY - ballRadius < screenY + this.barHeight / 2) {
                     
                     const barWidth = canvas.width / 4;
                     
@@ -685,8 +694,9 @@
                 return false;
             }
             
-            checkPassed(ballY) {
-                return ballY < this.y - this.barHeight && !this.passed;
+            checkPassed(ballScreenY) {
+                const screenY = this.getScreenY();
+                return ballScreenY < screenY - this.barHeight && !this.passed;
             }
         }
         
@@ -706,10 +716,14 @@
                 this.pulse += 0.1;
             }
             
-            draw(offsetY) {
+            getScreenY() {
+                return this.y - cameraY;
+            }
+            
+            draw() {
                 if (this.collected) return;
                 
-                const screenY = this.y - offsetY;
+                const screenY = this.getScreenY();
                 if (screenY < -50 || screenY > canvas.height + 50) return;
                 
                 const pulseSize = Math.sin(this.pulse) * 3;
@@ -746,11 +760,12 @@
                 ctx.restore();
             }
             
-            checkCollision(ballX, ballY, ballRadius) {
+            checkCollision(ballScreenY, ballX, ballRadius) {
                 if (this.collected) return false;
                 
+                const screenY = this.getScreenY();
                 const dx = ballX - this.x;
-                const dy = ballY - this.y;
+                const dy = ballScreenY - screenY;
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 
                 return distance < this.radius + ballRadius;
@@ -763,44 +778,58 @@
         
         function resetGame() {
             ball.x = canvas.width / 2;
-            ball.y = canvas.height - 150;
+            ball.y = canvas.height - 150; // Ball starts near bottom of screen
             ball.velocity = 0;
             ball.colorIndex = Math.floor(Math.random() * 4);
             ball.trail = [];
             
             obstacles = [];
+            colorSwitchers = [];
             cameraY = 0;
-            targetCameraY = 0;
             score = 0;
             frameCount = 0;
             gameOver = false;
             gameStarted = false;
             
-            // Generate initial obstacles
-            for (let i = 1; i <= 5; i++) {
-                spawnObstacle(ball.y - i * OBSTACLE_SPACING);
+            // First obstacle starts above the ball's starting position
+            // In world coordinates: ball starts at screen Y = canvas.height - 150
+            // which in world Y (with cameraY=0) is also canvas.height - 150
+            // Place first obstacle above that
+            highestObstacleY = canvas.height - 150 - OBSTACLE_SPACING;
+            
+            // Generate initial obstacles above the ball
+            for (let i = 0; i < 5; i++) {
+                spawnObstacle();
             }
             
             document.getElementById('score-display').textContent = '0';
         }
         
-        function spawnObstacle(y) {
+        function spawnObstacle() {
             const type = Math.random();
             let obstacle;
             
-            if (type < 0.4) {
-                obstacle = new RotatingWheel(y);
+            // World Y for obstacle (remember: smaller Y = higher on screen)
+            const worldY = highestObstacleY;
+            
+            // Favor simpler obstacles (single wheels) more often
+            if (type < 0.5) {
+                obstacle = new RotatingWheel(worldY);     // 50% single wheel
             } else if (type < 0.7) {
-                obstacle = new DoubleWheel(y);
+                obstacle = new DoubleWheel(worldY);       // 20% double wheel
             } else {
-                obstacle = new HorizontalBars(y);
+                obstacle = new HorizontalBars(worldY);    // 30% bars
             }
             
             obstacles.push(obstacle);
             
-            // Add color switcher between obstacles
-            const switcher = new ColorSwitcher(y + OBSTACLE_SPACING / 2);
-            obstacles.push(switcher);
+            // Add color switcher below this obstacle (between this and previous)
+            const switcherY = worldY + OBSTACLE_SPACING / 2;
+            const switcher = new ColorSwitcher(switcherY);
+            colorSwitchers.push(switcher);
+            
+            // Move up for next obstacle
+            highestObstacleY -= OBSTACLE_SPACING;
         }
         
         function startGame() {
@@ -865,7 +894,7 @@
             for (let i = 0; i < 3; i++) {
                 ball.trail.push({
                     x: ball.x,
-                    y: ball.y + cameraY,
+                    y: ball.y + cameraY, // Store world Y
                     radius: ball.radius - i * 3,
                     alpha: 0.5 - i * 0.15,
                     color: COLOR_ARRAY[ball.colorIndex]
@@ -878,8 +907,9 @@
             
             frameCount++;
             
-            // Update all obstacles
+            // Update all obstacles and switchers
             obstacles.forEach(obs => obs.update());
+            colorSwitchers.forEach(sw => sw.update());
             
             // Update trail
             ball.trail = ball.trail.filter(t => {
@@ -889,57 +919,61 @@
             });
             
             if (!gameStarted) {
-                // Hover animation
+                // Hover animation before first tap
                 ball.y = canvas.height - 150 + Math.sin(frameCount * 0.05) * 8;
                 return;
             }
             
             // Physics
             ball.velocity += ball.gravity;
-            ball.velocity = Math.min(ball.velocity, 12);
+            ball.velocity = Math.min(ball.velocity, 8); // Lower terminal velocity for more control
             ball.y += ball.velocity;
             
-            // Camera follow
-            targetCameraY = Math.min(0, -(ball.y - canvas.height + 200));
+            // Camera follows ball upward (when ball goes up, cameraY decreases)
+            // Keep ball roughly in lower third of screen
+            const targetCameraY = Math.min(0, ball.y - (canvas.height - 200));
             cameraY += (targetCameraY - cameraY) * 0.1;
             
-            // Spawn new obstacles
-            const highestObstacle = Math.min(...obstacles.filter(o => !(o instanceof ColorSwitcher)).map(o => o.y));
-            if (ball.y - cameraY < highestObstacle + OBSTACLE_SPACING * 3) {
-                spawnObstacle(highestObstacle - OBSTACLE_SPACING);
+            // Spawn new obstacles as ball approaches the highest one
+            // Ball world Y = ball.y + cameraY (but since we scroll, compare screen positions)
+            const ballWorldY = ball.y + cameraY;
+            if (ballWorldY < highestObstacleY + OBSTACLE_SPACING * 3) {
+                spawnObstacle();
             }
             
-            // Check collisions and scoring
-            for (let obs of obstacles) {
-                if (obs instanceof ColorSwitcher) {
-                    if (obs.checkCollision(ball.x, ball.y, ball.radius)) {
-                        obs.collected = true;
-                        // Change to random different color
-                        let newColor;
-                        do {
-                            newColor = Math.floor(Math.random() * 4);
-                        } while (newColor === ball.colorIndex);
-                        ball.colorIndex = newColor;
-                    }
-                } else {
-                    if (obs.checkCollision(ball.x, ball.y, ball.radius, ball.colorIndex)) {
-                        endGame();
-                        return;
-                    }
-                    
-                    if (obs.checkPassed(ball.y)) {
-                        obs.passed = true;
-                        score++;
-                        document.getElementById('score-display').textContent = score;
-                    }
+            // Check color switcher collisions
+            for (let sw of colorSwitchers) {
+                if (sw.checkCollision(ball.y, ball.x, ball.radius)) {
+                    sw.collected = true;
+                    let newColor;
+                    do {
+                        newColor = Math.floor(Math.random() * 4);
+                    } while (newColor === ball.colorIndex);
+                    ball.colorIndex = newColor;
                 }
             }
             
-            // Remove old obstacles
-            obstacles = obstacles.filter(o => o.y > ball.y - 500);
+            // Check obstacle collisions and scoring
+            for (let obs of obstacles) {
+                if (obs.checkCollision(ball.y, ball.x, ball.radius, ball.colorIndex)) {
+                    endGame();
+                    return;
+                }
+                
+                if (obs.checkPassed(ball.y)) {
+                    obs.passed = true;
+                    score++;
+                    document.getElementById('score-display').textContent = score;
+                }
+            }
             
-            // Fall death
-            if (ball.y > canvas.height + 100 - cameraY) {
+            // Remove obstacles that are way below the screen
+            const cullY = cameraY + canvas.height + 200;
+            obstacles = obstacles.filter(o => o.y < cullY);
+            colorSwitchers = colorSwitchers.filter(sw => sw.y < cullY);
+            
+            // Fall death - ball falls below screen
+            if (ball.y > canvas.height + 50) {
                 endGame();
             }
         }
@@ -952,48 +986,51 @@
             // Draw subtle grid
             ctx.strokeStyle = 'rgba(102, 126, 234, 0.05)';
             ctx.lineWidth = 1;
-            for (let y = (cameraY % 50); y < canvas.height; y += 50) {
+            const gridOffset = (-cameraY) % 50;
+            for (let y = gridOffset; y < canvas.height; y += 50) {
                 ctx.beginPath();
                 ctx.moveTo(0, y);
                 ctx.lineTo(canvas.width, y);
                 ctx.stroke();
             }
             
+            // Draw color switchers
+            colorSwitchers.forEach(sw => sw.draw());
+            
+            // Draw obstacles
+            obstacles.forEach(obs => obs.draw());
+            
             // Draw trail
             ball.trail.forEach(t => {
+                const trailScreenY = t.y - cameraY;
                 ctx.globalAlpha = t.alpha;
                 ctx.beginPath();
-                ctx.arc(t.x, t.y + cameraY, t.radius, 0, Math.PI * 2);
+                ctx.arc(t.x, trailScreenY, t.radius, 0, Math.PI * 2);
                 ctx.fillStyle = t.color;
                 ctx.fill();
             });
             ctx.globalAlpha = 1;
             
-            // Draw obstacles
-            obstacles.forEach(obs => obs.draw(-cameraY));
-            
             // Draw ball
-            const ballScreenY = ball.y + cameraY;
-            
             // Ball glow
             const gradient = ctx.createRadialGradient(
-                ball.x, ballScreenY, 0,
-                ball.x, ballScreenY, ball.radius * 2
+                ball.x, ball.y, 0,
+                ball.x, ball.y, ball.radius * 2
             );
             gradient.addColorStop(0, COLOR_ARRAY[ball.colorIndex] + '80');
             gradient.addColorStop(1, 'transparent');
             ctx.fillStyle = gradient;
-            ctx.fillRect(ball.x - ball.radius * 2, ballScreenY - ball.radius * 2, ball.radius * 4, ball.radius * 4);
+            ctx.fillRect(ball.x - ball.radius * 2, ball.y - ball.radius * 2, ball.radius * 4, ball.radius * 4);
             
             // Ball
             ctx.beginPath();
-            ctx.arc(ball.x, ballScreenY, ball.radius, 0, Math.PI * 2);
+            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
             ctx.fillStyle = COLOR_ARRAY[ball.colorIndex];
             ctx.fill();
             
             // Ball highlight
             ctx.beginPath();
-            ctx.arc(ball.x - 4, ballScreenY - 4, ball.radius * 0.4, 0, Math.PI * 2);
+            ctx.arc(ball.x - 4, ball.y - 4, ball.radius * 0.4, 0, Math.PI * 2);
             ctx.fillStyle = 'rgba(255,255,255,0.4)';
             ctx.fill();
             
@@ -1002,7 +1039,7 @@
                 ctx.fillStyle = 'rgba(255,255,255,0.6)';
                 ctx.font = '16px Outfit';
                 ctx.textAlign = 'center';
-                ctx.fillText('TAP TO START', canvas.width / 2, canvas.height - 60);
+                ctx.fillText('TAP TO START', canvas.width / 2, canvas.height - 220);
                 ctx.textAlign = 'left';
             }
         }
