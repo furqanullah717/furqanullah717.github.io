@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Flappy Bird</title>
+    <title>Instabridge Flappy</title>
     <style>
         * {
             margin: 0;
@@ -13,7 +13,7 @@
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(180deg, #4EC0CA 0%, #4EC0CA 60%, #DED895 60%, #DED895 100%);
+            background: linear-gradient(180deg, #667eea 0%, #764ba2 60%, #DED895 60%, #DED895 100%);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -66,8 +66,15 @@
             border-radius: 12px;
         }
         
+        .brand-logo {
+            font-size: 14px;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 5px;
+            letter-spacing: 2px;
+        }
+        
         #start-screen h1 {
-            font-size: 36px;
+            font-size: 32px;
             color: #FFD700;
             text-shadow: 3px 3px 0 #E67E22;
             margin-bottom: 20px;
@@ -108,9 +115,9 @@
         }
         
         .btn-play {
-            background: linear-gradient(135deg, #2ECC71 0%, #27AE60 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            box-shadow: 0 4px 15px rgba(46, 204, 113, 0.4);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
         }
         
         .btn-submit {
@@ -139,6 +146,11 @@
             font-size: 50px;
             margin-bottom: 15px;
         }
+        
+        .wifi-icon {
+            font-size: 50px;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
@@ -147,8 +159,9 @@
         <canvas id="game-canvas"></canvas>
         
         <div id="start-screen">
-            <div class="bird-emoji">🐦</div>
-            <h1>Flappy Bird</h1>
+            <div class="wifi-icon">📶</div>
+            <div class="brand-logo">INSTABRIDGE</div>
+            <h1>Flappy WiFi</h1>
             <button class="btn btn-play" onclick="startGame()">Play</button>
             <p class="tap-instruction">Tap or press Space to fly!</p>
         </div>
@@ -181,7 +194,7 @@
                 if (this.isInApp()) {
                     window.AndroidBridge.onGameComplete(score);
                 } else {
-                    alert('🎮 Score: ' + score + '\n\nIn the app, this would submit your score!');
+                    alert('🎮 Score: ' + score + '\n\nIn the Instabridge app, this would submit your score!');
                 }
                 console.log('[StreakBridge] Score submitted:', score);
             },
@@ -215,36 +228,37 @@
         // Game state
         let gameRunning = false;
         let gameOver = false;
+        let gameStarted = false;  // Track if first tap happened
         let score = 0;
-        let bestScore = parseInt(localStorage.getItem('flappyBest') || '0');
+        let bestScore = parseInt(localStorage.getItem('instabridgeFlappyBest') || '0');
         let frameCount = 0;
         
-        // Bird properties
+        // Bird properties - ADJUSTED FOR SLOWER FALL
         const bird = {
             x: 80,
             y: 0,
             width: 40,
             height: 30,
             velocity: 0,
-            gravity: 0.5,
-            jumpStrength: -9,
+            gravity: 0.2,        // Reduced from 0.5 - slower fall
+            jumpStrength: -6,     // Reduced from -9 - gentler jump
             rotation: 0
         };
         
         // Pipes
         let pipes = [];
         const pipeWidth = 60;
-        const pipeGap = 150;
-        const pipeSpeed = 3;
-        let pipeSpawnRate = 90; // frames
+        const pipeGap = 160;      // Slightly larger gap for easier gameplay
+        const pipeSpeed = 2.5;    // Slightly slower pipes
+        let pipeSpawnRate = 100;  // Spawn pipes less frequently
         
-        // Colors
+        // Colors - Instabridge theme (purple gradient)
         const colors = {
-            bird: '#F1C40F',
-            birdOutline: '#E67E22',
-            pipe: '#2ECC71',
-            pipeOutline: '#27AE60',
-            pipeCap: '#58D68D',
+            bird: '#FFD700',       // Gold bird
+            birdOutline: '#FFA500',
+            pipe: '#667eea',       // Instabridge purple
+            pipeOutline: '#5a67d8',
+            pipeCap: '#7c3aed',
             ground: '#DED895'
         };
         
@@ -260,6 +274,7 @@
             score = 0;
             frameCount = 0;
             gameOver = false;
+            gameStarted = false;  // Wait for first tap
             document.getElementById('score-display').textContent = '0';
         }
         
@@ -284,7 +299,7 @@
             // Update best score
             if (score > bestScore) {
                 bestScore = score;
-                localStorage.setItem('flappyBest', bestScore.toString());
+                localStorage.setItem('instabridgeFlappyBest', bestScore.toString());
             }
             
             // Update UI
@@ -312,6 +327,11 @@
             if (!gameRunning) return;
             if (gameOver) return;
             
+            // First tap starts the game physics
+            if (!gameStarted) {
+                gameStarted = true;
+            }
+            
             bird.velocity = bird.jumpStrength;
         }
         
@@ -331,6 +351,14 @@
         function update() {
             if (!gameRunning || gameOver) return;
             
+            // Only update physics if game has started (first tap)
+            if (!gameStarted) {
+                // Bird hovers in place, waiting for first tap
+                bird.y = canvas.height / 2 + Math.sin(frameCount * 0.05) * 10;
+                frameCount++;
+                return;
+            }
+            
             frameCount++;
             
             // Spawn pipes
@@ -340,10 +368,11 @@
             
             // Update bird
             bird.velocity += bird.gravity;
+            bird.velocity = Math.min(bird.velocity, 8);  // Terminal velocity cap
             bird.y += bird.velocity;
             
             // Bird rotation based on velocity
-            bird.rotation = Math.min(Math.max(bird.velocity * 3, -30), 90);
+            bird.rotation = Math.min(Math.max(bird.velocity * 4, -25), 70);
             
             // Update pipes
             for (let i = pipes.length - 1; i >= 0; i--) {
@@ -408,18 +437,31 @@
             // Clear canvas
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // Draw sky gradient
+            // Draw sky gradient - Instabridge purple theme
             const skyGradient = ctx.createLinearGradient(0, 0, 0, canvas.height - 80);
-            skyGradient.addColorStop(0, '#4EC0CA');
-            skyGradient.addColorStop(1, '#71C9CE');
+            skyGradient.addColorStop(0, '#667eea');
+            skyGradient.addColorStop(1, '#764ba2');
             ctx.fillStyle = skyGradient;
             ctx.fillRect(0, 0, canvas.width, canvas.height - 80);
             
             // Draw clouds
-            ctx.fillStyle = 'rgba(255,255,255,0.8)';
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
             drawCloud(50, 60, 40);
             drawCloud(200, 100, 50);
             drawCloud(320, 50, 35);
+            
+            // Draw WiFi signals as decoration
+            if (!gameStarted && gameRunning) {
+                ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                ctx.font = '30px Arial';
+                ctx.fillText('📶', 150, 200);
+                ctx.fillText('📶', 280, 150);
+                ctx.font = '16px Arial';
+                ctx.fillStyle = 'rgba(255,255,255,0.8)';
+                ctx.textAlign = 'center';
+                ctx.fillText('Tap to start!', canvas.width / 2, canvas.height / 2 + 80);
+                ctx.textAlign = 'left';
+            }
             
             // Draw pipes
             pipes.forEach(pipe => {
@@ -483,7 +525,7 @@
             ctx.translate(bird.x + bird.width / 2, bird.y + bird.height / 2);
             ctx.rotate(bird.rotation * Math.PI / 180);
             
-            // Body
+            // Body - WiFi signal themed
             ctx.fillStyle = colors.bird;
             ctx.beginPath();
             ctx.ellipse(0, 0, bird.width / 2, bird.height / 2, 0, 0, Math.PI * 2);
@@ -574,4 +616,3 @@
     </script>
 </body>
 </html>
-
